@@ -1,4 +1,4 @@
-import { TelepartyClient, SocketEventHandler, SocketMessageTypes, SessionChatMessage } from "teleparty-WebSocket-lib";
+import { TelepartyClient, SocketEventHandler, SocketMessageTypes, SessionChatMessage, MessageList } from "teleparty-WebSocket-lib";
 
 class WebSocketService {
   private client: TelepartyClient;
@@ -13,11 +13,14 @@ class WebSocketService {
       this.connectionReadyResolver = resolve;
     });
 
-    const eventHandler: SocketEventHandler = {
+    this.client = new TelepartyClient(this.getEventHandler(onMessageReceived));
+  }
+
+  private getEventHandler(onMessageReceived: (message: SessionChatMessage | any) => void): SocketEventHandler {
+    return {
       onConnectionReady: () => {
         console.log("✅ Connection Established");
         this.isConnected = true;
-        // Resolve the connection ready promise
         if (this.connectionReadyResolver) {
           this.connectionReadyResolver();
         }
@@ -25,14 +28,17 @@ class WebSocketService {
       onClose: () => {
         console.warn("⚠️ WebSocket Disconnected");
         this.isConnected = false;
+  
+        setTimeout(() => {
+          console.log("🔁 Attempting to reconnect...");
+          this.client = new TelepartyClient(this.getEventHandler(onMessageReceived));
+        }, 3000);
       },
       onMessage: (message) => {
         console.log("📩 Received message:", message);
         onMessageReceived(message);
-      },
+      }
     };
-
-    this.client = new TelepartyClient(eventHandler);
   }
 
   // Check if the connection is ready
@@ -62,14 +68,16 @@ class WebSocketService {
     }
   }
 
-  async joinChatRoom(nickname: string, roomId: string, userIcon?: string): Promise<void> {
+  async joinChatRoom(nickname: string, roomId: string, userIcon?: string): Promise<MessageList[]> {
     // Wait for the connection to be ready
     await this.waitForConnection();
 
+    this.roomId = roomId;
+
     try {
-      this.roomId = roomId;
-      this.client.joinChatRoom(nickname, roomId, userIcon);
+      const messageList: any = await this.client.joinChatRoom(nickname, roomId, userIcon);
       console.log(`🚀 Joined chat room: ${roomId}`);
+      return messageList;
     } catch (error) {
       console.error("Failed to join chat room:", error);
       throw error;

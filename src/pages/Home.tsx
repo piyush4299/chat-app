@@ -72,7 +72,12 @@ const Home: React.FC = () => {
       localStorage.setItem("nickname", nickname);
       
       if (wsServiceRef.current) {
-        await wsServiceRef.current.joinChatRoom(nickname, roomId);
+        try {
+          await wsServiceRef.current.joinChatRoom(nickname, roomId);
+        } catch (err) {
+          setError("Failed to join room. Please check the room ID and try again.");
+          return;
+        }
         navigate(`/chat/${roomId}`);
       }
     } catch (err) {

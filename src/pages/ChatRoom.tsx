@@ -34,7 +34,8 @@ const ChatRoom: React.FC = () => {
       if (roomId) {
         try {
           setIsJoining(true);
-          await wsServiceRef.current.joinChatRoom(nickname, roomId);
+          const pastMessages: any = await wsServiceRef.current.joinChatRoom(nickname, roomId);
+          setMessages(prev => [...prev, ...pastMessages.messages]);
           setIsJoining(false);
         } catch (err) {
           console.error("Failed to join room:", err);
@@ -135,7 +136,7 @@ const ChatRoom: React.FC = () => {
         ))}
       </div>
       
-      {typingUsers.length > 0 && typingUsers.every(user => user !== nickname) && (
+      {typingUsers.length > 0 && typingUsers.some(user => user !== nickname) && (
         <div className="typing-indicator">
           Someone is typing...
         </div>
